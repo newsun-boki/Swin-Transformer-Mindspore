@@ -1,3 +1,11 @@
+/*
+ * @Author: liboyu 
+ * @Date: 2021-08-13 22:12:20 
+ * @Last Modified by:   liboyu 
+ * @Last Modified time: 2021-08-13 22:12:20 
+ */
+
+
 # from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 # img_size=224
 # # img_size = to_2tuple(img_size)
