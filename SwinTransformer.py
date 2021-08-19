@@ -2,6 +2,7 @@ import numpy as np
 
 from mindspore.common.initializer import initializer
 import mindspore.nn as nn
+import mindspore
 from mindspore.ops import operations as P
 from mindspore.ops import functional as F
 from mindspore.ops import composite as C
@@ -28,9 +29,11 @@ def drop_path(x, drop_prob: float = 0., training: bool = False):
         return x
     keep_prob = 1 - drop_prob
     shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
-    random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
-    random_tensor.floor_()  # binarize
-    output = x.div(keep_prob) * random_tensor
+    random_tensor = keep_prob + Tensor(np.random.rand(shape[0])).astype(x.dtype)
+    floor = P.Floor()
+    random_tensor = floor(random_tensor)  # binarize
+    div = P.Div()
+    output = div(x,keep_prob) * random_tensor
     return output
 
 
@@ -70,13 +73,15 @@ class WindowAttention(nn.Module):
         zeros = P.Zeros()
         # define a parameter table of relative position bias
         self.relative_position_bias_table = nn.Parameter(
-            zeros(((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads),mstype.float32)  # 2*Wh-1 * 2*Ww-1, nH
+            zeros(((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads),mstype.float32))  # 2*Wh-1 * 2*Ww-1, nH
 
         # get pair-wise relative position index for each token inside the window
-        coords_h = torch.arange(self.window_size[0])
-        coords_w = torch.arange(self.window_size[1])
-        coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
-        coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
+        coords_h = np.arange(self.window_size[0])
+        coords_w = np.arange(self.window_size[1])
+        c1,c2 = np.meshgrid(coords_h, coords_w)
+        c1 = c1.flatten()
+        c2 = c2.flatten()
+        coords_flatten = Tensor(np.stack(np.stack((c2,c1))))   # 2, Wh*Ww
         relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Wh*Ww, Wh*Ww
         relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
         relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
