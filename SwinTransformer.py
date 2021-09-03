@@ -1,3 +1,4 @@
+from mindspore.common.api import _MindSporeFunction
 import numpy as np
 
 from mindspore.common.initializer import initializer
@@ -16,6 +17,8 @@ from mindspore.context import ParallelMode
 from mindspore import context
 import math
 import warnings
+from numpy.core.fromnumeric import reshape, transpose
+from numpy.lib.shape_base import expand_dims
 from scipy import special
 #copy from timm
 
@@ -77,8 +80,61 @@ class DropPath(nn.Cell):
     def construct(self, x):
         return drop_path(x, self.drop_prob, self.training)
 
+class Mlp(nn.Module):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Dense(in_features, hidden_features)
+        self.act = act_layer()
+        self.fc2 = nn.Dense(hidden_features, out_features)
+        self.drop = nn.Dropout(drop)
 
-class WindowAttention(nn.Module):
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
+
+
+def window_partition(x, window_size):
+    """
+    Args:
+        x: (B, H, W, C)
+        window_size (int): window size
+
+    Returns:
+        windows: (num_windows*B, window_size, window_size, C)
+    """
+    B, H, W, C = x.shape
+    reshape =P.Reshape()
+    transpose = P.Transpose()
+    x = reshape(x,(B, H // window_size, window_size, W // window_size, window_size, C))
+    windows = reshape(transpose(x,(0, 1, 3, 2, 4, 5)),(-1, window_size, window_size, C))
+    return windows
+
+
+def window_reverse(windows, window_size, H, W):
+    """
+    Args:
+        windows: (num_windows*B, window_size, window_size, C)
+        window_size (int): Window size
+        H (int): Height of image
+        W (int): Width of image
+
+    Returns:
+        x: (B, H, W, C)
+    """
+    B = int(windows.shape[0] / (H * W / window_size / window_size))
+    reshape =P.Reshape()
+    transpose = P.Transpose()
+    x = reshape(windows,(B, H // window_size, W // window_size, window_size, window_size, -1))
+    x = reshape(transpose(x,(0, 1, 3, 2, 4, 5)),(B, H, W, -1))
+    return x
+
+class WindowAttention(nn.Cell):
     r""" Window based multi-head self attention (W-MSA) module with relative position bias.
     It supports both of shifted and non-shifted window.
 
@@ -118,7 +174,7 @@ class WindowAttention(nn.Module):
         relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
         relative_coords[:, :, 1] += self.window_size[1] - 1
         relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1
-        relative_position_index = Tensor(relative_coords.sum(-1))  # Wh*Ww, Wh*Ww
+        self.relative_position_index = Tensor(relative_coords.sum(-1))  # Wh*Ww, Wh*Ww
 
         # self.register_buffer("relative_position_index", relative_position_index)
 
@@ -129,6 +185,10 @@ class WindowAttention(nn.Module):
 
         trunc_normal_(self.relative_position_bias_table, std=.02)
         self.softmax = nn.Softmax(dim=-1)
+        self.transpose = P.Transpose()
+        self.reshape = P.Reshape()
+        self.expand_dims = P.ExpandDims()
+        self.matmul = nn.MatMul()
 
     def forward(self, x, mask=None):
         """
@@ -136,30 +196,31 @@ class WindowAttention(nn.Module):
             x: input features with shape of (num_windows*B, N, C)
             mask: (0/-inf) mask with shape of (num_windows, Wh*Ww, Wh*Ww) or None
         """
-        transpose = P.Transpose()
+        
         B_, N, C = x.shape
-        qkv = transpose(self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads),(2, 0, 3, 1, 4))
+        qkv = self.transpose(self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads),(2, 0, 3, 1, 4))
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         q = q * self.scale
-        attn = (q @ k.transpose(-2, -1))
-
-        relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(
-            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  # Wh*Ww,Wh*Ww,nH
-        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
-        attn = attn + relative_position_bias.unsqueeze(0)
+        attn = self.matmul(q,self.transpose(k,(0,1,3,2)))
+    
+        
+        relative_position_bias = self.reshape(self.relative_position_bias_table[self.reshape(self.relative_position_index,(-1,))],
+            (self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1))# Wh*Ww,Wh*Ww,nH
+        relative_position_bias = self.transpose(relative_position_bias,(2, 0, 1))  # nH, Wh*Ww, Wh*Ww
+        attn = attn + expand_dims(relative_position_bias,0)
 
         if mask is not None:
             nW = mask.shape[0]
-            attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
-            attn = attn.view(-1, self.num_heads, N, N)
+            attn = self.reshape(attn,(B_ // nW, nW, self.num_heads, N, N) + expand_dims(expand_dims(mask,1)),0)
+            attn = self.reshape(attn,(-1, self.num_heads, N, N))
             attn = self.softmax(attn)
         else:
             attn = self.softmax(attn)
 
         attn = self.attn_drop(attn)
-
-        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
+        x = self.transpose(self.matmul(attn,v),(0,2,1,3))
+        x = x.reshape(B_,N,C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -180,7 +241,7 @@ class WindowAttention(nn.Module):
         flops += N * self.dim * self.dim
         return flops
 
-class SwinTransformerBlock(nn.Module):
+class SwinTransformerBlock(nn.Cell):
     r""" Swin Transformer Block.
 
     Args:
@@ -195,8 +256,8 @@ class SwinTransformerBlock(nn.Module):
         drop (float, optional): Dropout rate. Default: 0.0
         attn_drop (float, optional): Attention dropout rate. Default: 0.0
         drop_path (float, optional): Stochastic depth rate. Default: 0.0
-        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
-        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+        act_layer (nn.Cell, optional): Activation layer. Default: nn.GELU
+        norm_layer (nn.Cell, optional): Normalization layer.  Default: nn.LayerNorm
     """
 
     def __init__(self, dim, input_resolution, num_heads, window_size=7, shift_size=0,
@@ -219,16 +280,18 @@ class SwinTransformerBlock(nn.Module):
         self.attn = WindowAttention(
             dim, window_size=(self.window_size,self.window_size), num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
-
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else P.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
-
+        reshape =P.Reshape()
+        self.expand_dims = P.ExpandDims()
         if self.shift_size > 0:
             # calculate attention mask for SW-MSA
             H, W = self.input_resolution
-            img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
+            zeros = P.Zeros()
+            img_mask = zeros((1, H, W, 1),_MindSporeFunction.float32)  # 1 H W 1
             h_slices = (slice(0, -self.window_size),
                         slice(-self.window_size, -self.shift_size),
                         slice(-self.shift_size, None))
@@ -242,13 +305,13 @@ class SwinTransformerBlock(nn.Module):
                     cnt += 1
 
             mask_windows = window_partition(img_mask, self.window_size)  # nW, window_size, window_size, 1
-            mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
+            mask_windows = reshape(mask_windows,(-1, self.window_size * self.window_size))
             attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
             attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
         else:
             attn_mask = None
 
-        self.register_buffer("attn_mask", attn_mask)
+        # self.register_buffer("attn_mask", attn_mask)
 
     def construct(self, x):
         H, W = self.input_resolution
@@ -306,13 +369,13 @@ class SwinTransformerBlock(nn.Module):
         # norm2
         flops += self.dim * H * W
         return flops
-class PatchMerging(nn.Module):
+class PatchMerging(nn.Cell):
     r""" Patch Merging Layer.
 
     Args:
         input_resolution (tuple[int]): Resolution of input feature.
         dim (int): Number of input channels.
-        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+        norm_layer (nn.Cell, optional): Normalization layer.  Default: nn.LayerNorm
     """
 
     def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm):
@@ -356,7 +419,7 @@ class PatchMerging(nn.Module):
         return flops
 
 
-class BasicLayer(nn.Module):
+class BasicLayer(nn.Cell):
     """ A basic Swin Transformer layer for one stage.
 
     Args:
@@ -371,8 +434,8 @@ class BasicLayer(nn.Module):
         drop (float, optional): Dropout rate. Default: 0.0
         attn_drop (float, optional): Attention dropout rate. Default: 0.0
         drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
+        norm_layer (nn.Cell, optional): Normalization layer. Default: nn.LayerNorm
+        downsample (nn.Cell | None, optional): Downsample layer at the end of the layer. Default: None
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
     """
 
@@ -424,7 +487,7 @@ class BasicLayer(nn.Module):
         if self.downsample is not None:
             flops += self.downsample.flops()
         return flops
-class PatchEmbed(nn.cell):
+class PatchEmbed(nn.Cell):
     r""" Image to Patch Embedding
 
     Args:
@@ -432,7 +495,7 @@ class PatchEmbed(nn.cell):
         patch_size (int): Patch token size. Default: 4.
         in_chans (int): Number of input image channels. Default: 3.
         embed_dim (int): Number of linear projection output channels. Default: 96.
-        norm_layer (nn.Module, optional): Normalization layer. Default: None
+        norm_layer (nn.Cell, optional): Normalization layer. Default: None
     """
     def __init__(self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None):
         super().__init__()
@@ -489,7 +552,7 @@ class SwinTransformer(nn.Cell):
         drop_rate (float): Dropout rate. Default: 0
         attn_drop_rate (float): Attention dropout rate. Default: 0
         drop_path_rate (float): Stochastic depth rate. Default: 0.1
-        norm_layer (nn.Module): Normalization layer. Default: nn.LayerNorm.
+        norm_layer (nn.Cell): Normalization layer. Default: nn.LayerNorm.
         ape (bool): If True, add absolute position embedding to the patch embedding. Default: False
         patch_norm (bool): If True, add normalization after patch embedding. Default: True
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
