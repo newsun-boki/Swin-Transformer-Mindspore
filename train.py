@@ -1,7 +1,10 @@
 
 from utils.config import get_config
-from utils.dataset import create_dataset_cifar10 create_dataset_imagenet
-
+from utils.dataset import create_dataset_cifar10,create_dataset_imagenet
+from utils.moxing_adapter import moxing_wrapper
+from utils.device_adapter import get_device_id, get_device_num, get_rank_id, get_job_id
+from model.build import build_model
+from model.get_param_groups import get_param_groups
 import mindspore.nn as nn
 from mindspore.communication.management import init, get_rank
 from mindspore import dataset as de
@@ -12,7 +15,9 @@ from mindspore.context import ParallelMode
 from mindspore.nn.metrics import Accuracy
 from mindspore.train.callback import ModelCheckpoint, CheckpointConfig, LossMonitor, TimeMonitor
 from mindspore.common import set_seed
-
+import argparse
+from logger import create_logger
+import os
 
 def parse_option():
     parser = argparse.ArgumentParser('Swin Transformer training and evaluation script', add_help=False)
@@ -108,25 +113,32 @@ def train(config):
         raise ValueError("Please check dataset size > 0 and batch_size <= dataset size")
 
     #建立模型
-    network = SwinTransformer(config.num_classes, phase='train')
+    logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
+    network = build_model()
+    n_parameters = sum(network.trainable_params())
+    logger.info(f"number of params: {n_parameters}")
+
+    if hasattr(network, 'flops'):
+        flops = network.flops()
+        logger.info(f"number of GFLOPs: {flops / 1e9}")
 
     loss_scale_manager = None
     metrics = None
     step_per_epoch = ds_train.get_dataset_size() if config.SINK_SIZE == -1 else config.SINK_SIZE
     if config.DATA.DATASET == 'cifar10':
         loss = nn.SoftmaxCrossEntropyWithLogits(sparse=True, reduction="mean")
-        lr = Tensor(get_lr_cifar10(0, config.TRAIN.BASE_LR, config.TRAIN.EPOCHS, step_per_epoch))
-        opt = nn.Momentum(network.trainable_params(), lr, config.momentum)
+        opt = nn.Adam(network.trainable_params(), lr, config.momentum)
         metrics = {"Accuracy": Accuracy()}
 
     elif config.DATA.DATASET == 'imagenet':
         loss = nn.SoftmaxCrossEntropyWithLogits(sparse=True, reduction="mean")
-        lr = Tensor(get_lr_imagenet(config.TRAIN.BASE_LR, config.TRAIN.EPOCHS, step_per_epoch))
-        opt = nn.Momentum(params=get_param_groups(network),
-                          learning_rate=lr,
+        opt = nn.Adam(params=get_param_groups(network),
+                          learning_rate=config.TRAIN.BASE_LR,
                           momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
                           weight_decay=config.TRAIN.WEIGHT_DECAY,
-                          loss_scale=config.LOSS_SCALE)
+                          loss_scale=config.LOSS_SCALE,
+                          eps=config.TRAIN.OPTIMIZER.EPS
+                          )
 
         from mindspore.train.loss_scale_manager import DynamicLossScaleManager, FixedLossScaleManager
         if config.IS_DYNAMIC_LOSS_SCALE == 1:
@@ -162,4 +174,20 @@ def train(config):
 
 if __name__ == "__main__":
     _, config = parse_option()
+    # linear scale the learning rate according to total batch size, may not be optimal
+    linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    # gradient accumulation also need to scale the learning rate
+    if config.TRAIN.ACCUMULATION_STEPS > 1:
+        linear_scaled_lr = linear_scaled_lr * config.TRAIN.ACCUMULATION_STEPS
+        linear_scaled_warmup_lr = linear_scaled_warmup_lr * config.TRAIN.ACCUMULATION_STEPS
+        linear_scaled_min_lr = linear_scaled_min_lr * config.TRAIN.ACCUMULATION_STEPS
+    config.defrost()
+    config.TRAIN.BASE_LR = linear_scaled_lr
+    config.TRAIN.WARMUP_LR = linear_scaled_warmup_lr
+    config.TRAIN.MIN_LR = linear_scaled_min_lr
+    config.freeze()
+    os.makedirs(config.OUTPUT, exist_ok=True)
+    logger = create_logger(output_dir=config.OUTPUT, dist_rank=dist.get_rank(), name=f"{config.MODEL.NAME}")
     train(config)

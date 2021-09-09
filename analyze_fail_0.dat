@@ -1,0 +1,244 @@
+# [No.1] construct_wrapper.0
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(16)/    def construct(self, x:Tensor, shif_size:int, dim:int):/
+funcgraph fg_0(
+        %para1 : Tensor(I64)[2, 3]    # x
+        , %para2 : I64    # shif_size
+        , %para3 : I64    # dim
+    ) {
+
+#------------------------> 0
+    %1 = FuncGraph::fg_3(%para1, %para2, %para3)    #(Tensor(I64)[2, 3], I64, I64)    # fg_3=construct.3 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]10
+    Primitive::Return{prim_type=1}(%1)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]11
+}
+# order:
+#   1: construct_wrapper.0:[CNode]10{[0]: ValueNode<FuncGraph> construct.3, [1]: x, [2]: shif_size, [3]: dim}
+#   2: construct_wrapper.0:[CNode]11{[0]: ValueNode<Primitive> Return, [1]: [CNode]10}
+
+
+# [No.2] construct.3
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(16)/    def construct(self, x:Tensor, shif_size:int, dim:int):/
+funcgraph fg_3(
+        %para4 : Tensor(I64)[2, 3]    # x
+        , %para5 : I64    # shif_size
+        , %para6 : I64    # dim
+    ) {
+    %1 : Bool = DoSignaturePrimitive::S-Prim-equal{prim_type=1}(%para6, I64(0))    #(I64, I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]12
+    %2 : Bool = FuncGraph::fg_13(%1)    #(Bool)    # fg_13=bool_.13 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]12
+    %3 : Func = Primitive::Switch{prim_type=1}(%2, FuncGraph::fg_14, FuncGraph::fg_4)    #(Bool, Func, Func)    # fg_14=✓construct.14, fg_4=✗construct.4 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]15
+
+#------------------------> 1
+    %4 = %3() #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]16
+    Primitive::Return{prim_type=1}(%4)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/#[CNode]17
+}
+# order:
+#   1: construct.3:[CNode]12{[0]: ValueNode<DoSignaturePrimitive> S-Prim-equal, [1]: dim, [2]: ValueNode<Int64Imm> 0}
+#   2: construct.3:[CNode]12{[0]: ValueNode<FuncGraph> bool_.13, [1]: [CNode]12}
+#   3: construct.3:[CNode]15{[0]: ValueNode<Primitive> Switch, [1]: [CNode]12, [2]: ValueNode<FuncGraph> ✓construct.14, [3]: ValueNode<FuncGraph> ✗construct.4}
+#   4: construct.3:[CNode]16{[0]: [CNode]15}
+#   5: construct.3:[CNode]17{[0]: ValueNode<Primitive> Return, [1]: [CNode]16}
+
+
+# [No.3] ✗construct.4
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(17)/        if dim == 0:/
+funcgraph fg_4[fg_3](
+) {
+    %1 : Bool = DoSignaturePrimitive::S-Prim-equal{prim_type=1}(%para6, I64(1))    #(I64, I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(22)/        elif dim == 1:/#[CNode]18
+    %2 : Bool = FuncGraph::fg_13(%1)    #(Bool)    # fg_13=bool_.13 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(22)/        elif dim == 1:/#[CNode]18
+    %3 : Func = Primitive::Switch{prim_type=1}(%2, FuncGraph::fg_5, FuncGraph::fg_19)    #(Bool, Func, Func)    # fg_5=✓✗construct.5, fg_19=✗✗construct.19 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(22)/        elif dim == 1:/#[CNode]20
+
+#------------------------> 2
+    %4 = %3() #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(22)/        elif dim == 1:/#[CNode]21
+    Primitive::Return{prim_type=1}(%4)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(22)/        elif dim == 1:/#[CNode]22
+}
+# order:
+#   1: ✗construct.4:[CNode]18{[0]: ValueNode<DoSignaturePrimitive> S-Prim-equal, [1]: dim, [2]: ValueNode<Int64Imm> 1}
+#   2: ✗construct.4:[CNode]18{[0]: ValueNode<FuncGraph> bool_.13, [1]: [CNode]18}
+#   3: ✗construct.4:[CNode]20{[0]: ValueNode<Primitive> Switch, [1]: [CNode]18, [2]: ValueNode<FuncGraph> ✓✗construct.5, [3]: ValueNode<FuncGraph> ✗✗construct.19}
+#   4: ✗construct.4:[CNode]21{[0]: [CNode]20}
+#   5: ✗construct.4:[CNode]22{[0]: ValueNode<Primitive> Return, [1]: [CNode]21}
+
+
+# [No.4] ✓✗construct.5
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(22)/        elif dim == 1:/
+funcgraph fg_5[fg_3](
+) {
+    %1 : Tuple[I64*2] = Primitive::getattr{prim_type=1}(%para4, "shape")    #(Tensor(I64)[2, 3], String) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]23
+    %2 : I64 = DoSignaturePrimitive::S-Prim-sub{prim_type=1}(%para6, I64(1))    #(I64, I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]24
+    %3 : I64 = DoSignaturePrimitive::S-Prim-getitem{prim_type=1}(%1, %2)    #(Tuple[I64*2], I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]25
+    %4 : Tuple[I64*2] = DoSignaturePrimitive::S-Prim-make_range{prim_type=1}(%3)    #(I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]26
+    %5 : I64 = FuncGraph::fg_27(%4)    #(Tuple[I64*2])    # fg_27=ms_len.27 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]28
+    %6 : Bool = Primitive::scalar_lt{prim_type=1}(%5, I64(9223372036854775807))    #(I64, I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]29
+    %7 : Func = Primitive::Switch{prim_type=1}(%6, FuncGraph::fg_6, FuncGraph::fg_30)    #(Bool, Func, Func)    # fg_6=✓✓✗construct.6, fg_30=✗✓✗construct.30 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]31
+
+#------------------------> 3
+    %8 = %7() #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]32
+    Primitive::Return{prim_type=1}(%8)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]33
+}
+# order:
+#   1: ✓✗construct.5:[CNode]23{[0]: ValueNode<Primitive> getattr, [1]: x, [2]: ValueNode<StringImm> shape}
+#   2: ✓✗construct.5:[CNode]24{[0]: ValueNode<DoSignaturePrimitive> S-Prim-sub, [1]: dim, [2]: ValueNode<Int64Imm> 1}
+#   3: ✓✗construct.5:[CNode]25{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: [CNode]23, [2]: [CNode]24}
+#   4: ✓✗construct.5:[CNode]26{[0]: ValueNode<DoSignaturePrimitive> S-Prim-make_range, [1]: [CNode]25}
+#   5: ✓✗construct.5:[CNode]28{[0]: ValueNode<FuncGraph> ms_len.27, [1]: [CNode]26}
+#   6: ✓✗construct.5:[CNode]29{[0]: ValueNode<Primitive> scalar_lt, [1]: [CNode]28, [2]: ValueNode<Int64Imm> 9223372036854775807}
+#   7: ✓✗construct.5:[CNode]31{[0]: ValueNode<Primitive> Switch, [1]: [CNode]29, [2]: ValueNode<FuncGraph> ✓✓✗construct.6, [3]: ValueNode<FuncGraph> ✗✓✗construct.30}
+#   8: ✓✗construct.5:[CNode]32{[0]: [CNode]31}
+#   9: ✓✗construct.5:[CNode]33{[0]: ValueNode<Primitive> Return, [1]: [CNode]32}
+
+
+# [No.5] ✓✓✗construct.6
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/
+funcgraph fg_6[fg_3](
+) {
+    %1 : Tuple[I64*2] = Primitive::getattr{prim_type=1}(%para4, "shape")    #(Tensor(I64)[2, 3], String) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]34
+    %2 : I64 = DoSignaturePrimitive::S-Prim-sub{prim_type=1}(%para6, I64(1))    #(I64, I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]35
+    %3 : I64 = DoSignaturePrimitive::S-Prim-getitem{prim_type=1}(%1, %2)    #(Tuple[I64*2], I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]36
+    %4 : Tuple[I64*2] = DoSignaturePrimitive::S-Prim-make_range{prim_type=1}(%3)    #(I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]37
+    %5 : Tuple[I64*2] = FuncGraph::fg_38(%4)    #(Tuple[I64*2])    # fg_38=ms_iter.38 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#@cdim
+
+#------------------------> 4
+    %6 = FuncGraph::fg_7(%5, %para4, DoSignaturePrimitive::S-Prim-make_range{prim_type=1}, %para6)    #(Tuple[I64*2], Tensor(I64)[2, 3], Func, I64)    # fg_7=⤾✓✓✗construct.7 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]39
+    Primitive::Return{prim_type=1}(%6)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]40
+}
+# order:
+#   1: ✓✓✗construct.6:[CNode]34{[0]: ValueNode<Primitive> getattr, [1]: x, [2]: ValueNode<StringImm> shape}
+#   2: ✓✓✗construct.6:[CNode]35{[0]: ValueNode<DoSignaturePrimitive> S-Prim-sub, [1]: dim, [2]: ValueNode<Int64Imm> 1}
+#   3: ✓✓✗construct.6:[CNode]36{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: [CNode]34, [2]: [CNode]35}
+#   4: ✓✓✗construct.6:[CNode]37{[0]: ValueNode<DoSignaturePrimitive> S-Prim-make_range, [1]: [CNode]36}
+#   5: ✓✓✗construct.6:@cdim{[0]: ValueNode<FuncGraph> ms_iter.38, [1]: [CNode]37}
+#   6: ✓✓✗construct.6:[CNode]39{[0]: ValueNode<FuncGraph> ⤾✓✓✗construct.7, [1]: @cdim, [2]: x, [3]: ValueNode<DoSignaturePrimitive> S-Prim-make_range, [4]: dim}
+#   7: ✓✓✗construct.6:[CNode]40{[0]: ValueNode<Primitive> Return, [1]: [CNode]39}
+
+
+# [No.6] ⤾✓✓✗construct.7
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/
+funcgraph fg_7(
+        %para7 : Tuple[I64*2]    # @cdim
+        , %para8 : Tensor(I64)[2, 3]    # Φx
+        , %para9 : Func    # Φrange
+        , %para10 : I64    # Φdim
+    ) {
+    %1 : Bool = FuncGraph::fg_41(%para7)    #(Tuple[I64*2])    # fg_41=hasnext.41 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]42
+    %2 : Func = Primitive::Switch{prim_type=1}(%1, FuncGraph::fg_8, FuncGraph::fg_43)    #(Bool, Func, Func)    # fg_8=⥁✓✓✗construct.8, fg_43=↓✓✓✗construct.43 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]44
+
+#------------------------> 5
+    %3 = %2() #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]45
+    Primitive::Return{prim_type=1}(%3)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]46
+}
+# order:
+#   1: ⤾✓✓✗construct.7:[CNode]42{[0]: ValueNode<FuncGraph> hasnext.41, [1]: @cdim}
+#   2: ⤾✓✓✗construct.7:[CNode]44{[0]: ValueNode<Primitive> Switch, [1]: [CNode]42, [2]: ValueNode<FuncGraph> ⥁✓✓✗construct.8, [3]: ValueNode<FuncGraph> ↓✓✓✗construct.43}
+#   3: ⤾✓✓✗construct.7:[CNode]45{[0]: [CNode]44}
+#   4: ⤾✓✓✗construct.7:[CNode]46{[0]: ValueNode<Primitive> Return, [1]: [CNode]45}
+
+
+# [No.7] ⥁✓✓✗construct.8
+# In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/
+funcgraph fg_8[fg_7](
+) {
+    %1 : Tuple[I64,Tuple[I64]] = FuncGraph::fg_47(%para7)    #(Tuple[I64*2])    # fg_47=ms_next.47 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(23)/            for cdim in range(x.shape[dim-1]):/#[CNode]48
+    %2 : I64 = DoSignaturePrimitive::S-Prim-getitem{prim_type=1}(%1, I64(0))    #(Tuple[I64,Tuple[I64]], I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(29)/                x[cdim] = xx/#Φcdim
+    %3 : Tensor(I64)[3] = DoSignaturePrimitive::S-Prim-getitem{prim_type=1}(%para8, %2)    #(Tensor(I64)[2, 3], I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(24)/                xx = x[cdim]/#xx
+    %4 : Tuple[I64] = Primitive::getattr{prim_type=1}(%3, "shape")    #(Tensor(I64)[3], String) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]49
+
+#------------------------> 6
+    %5 = DoSignaturePrimitive::S-Prim-getitem{prim_type=1}(%4, %para10)    #(Tuple[I64], I64) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]50
+    %6 = DoSignaturePrimitive::S-Prim-sub{prim_type=1}(%5, I64(1))    #(Undefined, Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]51
+    %7 = DoSignaturePrimitive::S-Prim-negative{prim_type=1}(I64(1))    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]52
+    %8 = %para9(%6, I64(0), %7)    #(Undefined, Undefined, Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]53
+    %9 = FuncGraph::fg_27(%8)    #(Undefined)    # fg_27=ms_len.27 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]54
+    %10 = Primitive::scalar_lt{prim_type=1}(%9, I64(9223372036854775807))    #(Undefined, Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]55
+    %11 = Primitive::Switch{prim_type=1}(%10, FuncGraph::fg_56, FuncGraph::fg_57)    #(Undefined, Undefined, Undefined)    # fg_56=✓⥁✓✓✗construct.56, fg_57=✗⥁✓✓✗construct.57 #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]58
+    %12 = %11() #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]59
+    Primitive::Return{prim_type=1}(%12)    #(Undefined) #scope: Default
+      # In file /home/liboyu/mindspore-tutorials/Swin-Transformer-Mindspore/test/roll.py(26)/                for i in range(xx.shape[dim]-1,0,-1):/#[CNode]60
+}
+# order:
+#   1: ⥁✓✓✗construct.8:[CNode]48{[0]: ValueNode<FuncGraph> ms_next.47, [1]: @cdim}
+#   2: ⥁✓✓✗construct.8:Φcdim{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: [CNode]48, [2]: ValueNode<Int64Imm> 0}
+#   3: ⥁✓✓✗construct.8:@cdim{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: [CNode]48, [2]: ValueNode<Int64Imm> 1}
+#   4: ⥁✓✓✗construct.8:xx{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: Φx, [2]: Φcdim}
+#   5: ⥁✓✓✗construct.8:[CNode]61{[0]: ValueNode<DoSignaturePrimitive> S-Prim-negative, [1]: ValueNode<Int64Imm> 1}
+#   6: ⥁✓✓✗construct.8:Φtmp{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: xx, [2]: [CNode]61}
+#   7: ⥁✓✓✗construct.8:[CNode]49{[0]: ValueNode<Primitive> getattr, [1]: xx, [2]: ValueNode<StringImm> shape}
+#   8: ⥁✓✓✗construct.8:[CNode]50{[0]: ValueNode<DoSignaturePrimitive> S-Prim-getitem, [1]: [CNode]49, [2]: Φdim}
+#   9: ⥁✓✓✗construct.8:[CNode]51{[0]: ValueNode<DoSignaturePrimitive> S-Prim-sub, [1]: [CNode]50, [2]: ValueNode<Int64Imm> 1}
+#  10: ⥁✓✓✗construct.8:[CNode]52{[0]: ValueNode<DoSignaturePrimitive> S-Prim-negative, [1]: ValueNode<Int64Imm> 1}
+#  11: ⥁✓✓✗construct.8:[CNode]53{[0]: Φrange, [1]: [CNode]51, [2]: ValueNode<Int64Imm> 0, [3]: [CNode]52}
+#  12: ⥁✓✓✗construct.8:[CNode]54{[0]: ValueNode<FuncGraph> ms_len.27, [1]: [CNode]53}
+#  13: ⥁✓✓✗construct.8:[CNode]55{[0]: ValueNode<Primitive> scalar_lt, [1]: [CNode]54, [2]: ValueNode<Int64Imm> 9223372036854775807}
+#  14: ⥁✓✓✗construct.8:[CNode]58{[0]: ValueNode<Primitive> Switch, [1]: [CNode]55, [2]: ValueNode<FuncGraph> ✓⥁✓✓✗construct.56, [3]: ValueNode<FuncGraph> ✗⥁✓✓✗construct.57}
+#  15: ⥁✓✓✗construct.8:[CNode]59{[0]: [CNode]58}
+#  16: ⥁✓✓✗construct.8:[CNode]60{[0]: ValueNode<Primitive> Return, [1]: [CNode]59}
+
+
+# [No.8] _tuple_getitem_by_number.9
+# In file /home/liboyu/anaconda3/envs/mindspore-env/lib/python3.7/site-packages/mindspore/ops/composite/multitype_ops/getitem_impl.py(77)/def _tuple_getitem_by_number(data, number_index):/
+funcgraph fg_9(
+        %para11 : Tuple[I64]    # data
+        , %para12 : I64    # number_index
+    ) {
+    %1 : ExternalType = Primitive::resolve{prim_type=1}(NameSpace::SymbolStr, F)    #(ExternalType, ExternalType) #scope: Default
+      # In file /home/liboyu/anaconda3/envs/mindspore-env/lib/python3.7/site-packages/mindspore/ops/composite/multitype_ops/getitem_impl.py(88)/    return F.tuple_getitem(data, number_index)/#[CNode]62
+    %2 : Func = Primitive::getattr{prim_type=1}(%1, "tuple_getitem")    #(ExternalType, String) #scope: Default
+      # In file /home/liboyu/anaconda3/envs/mindspore-env/lib/python3.7/site-packages/mindspore/ops/composite/multitype_ops/getitem_impl.py(88)/    return F.tuple_getitem(data, number_index)/#[CNode]63
+
+#------------------------> 8
+    %3 = %2(%para11, %para12)    #(Tuple[I64], I64) #scope: Default
+      # In file /home/liboyu/anaconda3/envs/mindspore-env/lib/python3.7/site-packages/mindspore/ops/composite/multitype_ops/getitem_impl.py(88)/    return F.tuple_getitem(data, number_index)/#[CNode]64
+    Primitive::Return{prim_type=1}(%3)    #(Undefined) #scope: Default
+      # In file /home/liboyu/anaconda3/envs/mindspore-env/lib/python3.7/site-packages/mindspore/ops/composite/multitype_ops/getitem_impl.py(88)/    return F.tuple_getitem(data, number_index)/#[CNode]65
+}
+# order:
+#   1: _tuple_getitem_by_number.66:[CNode]67{[0]: ValueNode<Primitive> resolve, [1]: ValueNode<NameSpace> CommonOPS, [2]: ValueNode<Symbol> MakeTuple}
+#   2: _tuple_getitem_by_number.66:[CNode]68{[0]: [CNode]67, [1]: data, [2]: number_index}
+#   3: _tuple_getitem_by_number.9:[CNode]64{[0]: [CNode]63, [1]: data, [2]: number_index}
+#   4: _tuple_getitem_by_number.9:[CNode]65{[0]: ValueNode<Primitive> Return, [1]: [CNode]64}
+
+
+#===============================================================================
+# num of function graphs in stack: 10
