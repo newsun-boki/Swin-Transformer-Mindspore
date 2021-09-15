@@ -22,7 +22,7 @@ from numpy.lib.shape_base import expand_dims
 from scipy import special
 from utils.torch_operation import DropPath,trunc_normal_,MaskedFill,Roll,AdaptiveAvgPool1d_1,init_constant
 
-class Mlp(nn.Module):
+class Mlp(nn.Cell):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
         out_features = out_features or in_features

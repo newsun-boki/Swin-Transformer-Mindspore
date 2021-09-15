@@ -1,7 +1,7 @@
 
 from utils.config import get_config
 from utils.dataset import create_dataset_cifar10,create_dataset_imagenet
-from utils.moxing_adapter import moxing_wrapper
+# from utils.moxing_adapter import moxing_wrapper
 from utils.device_adapter import get_device_id, get_device_num, get_rank_id, get_job_id
 from model.build import build_model
 from model.get_param_groups import get_param_groups
@@ -53,7 +53,7 @@ def parse_option():
     parser.add_argument('--throughput', action='store_true', help='Test throughput only')
 
     # distributed training
-    parser.add_argument("--local_rank", type=int, required=True, help='local rank for DistributedDataParallel')
+    parser.add_argument("--local_rank", type=int, help='local rank for DistributedDataParallel')
 
     args, unparsed = parser.parse_known_args()
 
@@ -66,7 +66,7 @@ def modelarts_pre_process():
     pass
     # config.ckpt_path = os.path.join(config.output_path, str(get_rank_id()), config.checkpoint_path)
 
-@moxing_wrapper(pre_process=modelarts_pre_process)
+# @moxing_wrapper(pre_process=modelarts_pre_process)
 
 
 def train(config):

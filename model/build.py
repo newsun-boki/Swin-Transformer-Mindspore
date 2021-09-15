@@ -5,7 +5,7 @@
 # Written by Ze Liu
 # --------------------------------------------------------
 
-from swin_transformer import SwinTransformer
+from model.swin_transformer import SwinTransformer
 # from .swin_mlp import SwinMLP
 
 

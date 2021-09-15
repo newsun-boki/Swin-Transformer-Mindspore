@@ -191,6 +191,7 @@ _C.CKPT_PATH = "/ckpt"
 _C.SAVE_CHECKPOINT_STEPS = 1562
 _C.DATASET_SINK_MODE = True
 _C.KEEP_CHECKPOINT_MAX = 10
+_C.ENALE_MODELARTS = False
 
 def _update_config_from_file(config, cfg_file):
     config.defrost()
@@ -257,3 +258,12 @@ def get_config(args):
     update_config(config, args)
 
     return config
+
+def get_config_():
+    """Get a yacs CfgNode object with default values."""
+    # Return a clone so that the defaults will not be altered
+    # This is for the "local variable" use pattern
+    config = _C.clone()
+
+    return config
+
