@@ -21,9 +21,9 @@ _C.DATA = CN()
 # Batch size for a single GPU, could be overwritten by command line argument
 _C.DATA.BATCH_SIZE = 128
 # Path to dataset, could be overwritten by command line argument
-_C.DATA.DATA_PATH = ''
+_C.DATA.DATA_PATH = '/home/liboyu/Downloads/cifar-10-binary/cifar-10-batches-bin'
 # Dataset name
-_C.DATA.DATASET = 'imagenet'
+_C.DATA.DATASET = 'cifar10'
 # Input image size
 _C.DATA.IMG_SIZE = 224
 # Interpolation to resize image (random, bilinear, bicubic)
@@ -183,11 +183,11 @@ _C.LOCAL_RANK = 0
 # -----------------------------------------------------------------------------
 # Mindspore
 # -----------------------------------------------------------------------------
-_C.DEVICE_TARGET = 'CPU'
+_C.DEVICE_TARGET = 'GPU'
 _C.SINK_SIZE = -1
 _C.LOSS_SCALE = 1024
 _C.IS_DYNAMIC_LOSS_SCALE = 0
-_C.CKPT_PATH = "/cache/train"
+_C.CKPT_PATH = "/ckpt"
 _C.SAVE_CHECKPOINT_STEPS = 1562
 _C.DATASET_SINK_MODE = True
 _C.KEEP_CHECKPOINT_MAX = 10

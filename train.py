@@ -6,6 +6,8 @@ from utils.device_adapter import get_device_id, get_device_num, get_rank_id, get
 from model.build import build_model
 from model.get_param_groups import get_param_groups
 import mindspore.nn as nn
+from mindspore.nn import SGD
+import mindspore.common.dtype as mstype
 from mindspore.communication.management import init, get_rank
 from mindspore import dataset as de
 from mindspore import context
@@ -15,6 +17,7 @@ from mindspore.context import ParallelMode
 from mindspore.nn.metrics import Accuracy
 from mindspore.train.callback import ModelCheckpoint, CheckpointConfig, LossMonitor, TimeMonitor
 from mindspore.common import set_seed
+from lr_scheduler import build_scheduler
 import argparse
 from logger import create_logger
 import os
@@ -121,24 +124,20 @@ def train(config):
     if hasattr(network, 'flops'):
         flops = network.flops()
         logger.info(f"number of GFLOPs: {flops / 1e9}")
-
+    lr_scheduler = Tensor(build_scheduler(config, ds_train.get_dataset_size()), mstype.float32)
     loss_scale_manager = None
     metrics = None
     step_per_epoch = ds_train.get_dataset_size() if config.SINK_SIZE == -1 else config.SINK_SIZE
     if config.DATA.DATASET == 'cifar10':
         loss = nn.SoftmaxCrossEntropyWithLogits(sparse=True, reduction="mean")
-        opt = nn.Adam(network.trainable_params(), lr, config.momentum)
+        opt = SGD(params=network.trainable_params(), learning_rate=lr_scheduler, momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
+              weight_decay=config.weight_decay)
         metrics = {"Accuracy": Accuracy()}
 
     elif config.DATA.DATASET == 'imagenet':
         loss = nn.SoftmaxCrossEntropyWithLogits(sparse=True, reduction="mean")
-        opt = nn.Adam(params=get_param_groups(network),
-                          learning_rate=config.TRAIN.BASE_LR,
-                          momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
-                          weight_decay=config.TRAIN.WEIGHT_DECAY,
-                          loss_scale=config.LOSS_SCALE,
-                          eps=config.TRAIN.OPTIMIZER.EPS
-                          )
+        opt = SGD(params=network.trainable_params(), learning_rate=lr_scheduler, momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
+              weight_decay=config.weight_decay)
 
         from mindspore.train.loss_scale_manager import DynamicLossScaleManager, FixedLossScaleManager
         if config.IS_DYNAMIC_LOSS_SCALE == 1:
@@ -175,9 +174,9 @@ def train(config):
 if __name__ == "__main__":
     _, config = parse_option()
     # linear scale the learning rate according to total batch size, may not be optimal
-    linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
-    linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
-    linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE / 512.0
+    linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE / 512.0
+    linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE  / 512.0
     # gradient accumulation also need to scale the learning rate
     if config.TRAIN.ACCUMULATION_STEPS > 1:
         linear_scaled_lr = linear_scaled_lr * config.TRAIN.ACCUMULATION_STEPS
@@ -189,5 +188,5 @@ if __name__ == "__main__":
     config.TRAIN.MIN_LR = linear_scaled_min_lr
     config.freeze()
     os.makedirs(config.OUTPUT, exist_ok=True)
-    logger = create_logger(output_dir=config.OUTPUT, dist_rank=dist.get_rank(), name=f"{config.MODEL.NAME}")
+    logger = create_logger(output_dir=config.OUTPUT, dist_rank=get_rank_id(), name=f"{config.MODEL.NAME}")
     train(config)
